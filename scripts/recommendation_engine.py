@@ -100,39 +100,51 @@ recos = get_hybrid_recommendations(
 )
 
 import streamlit as st
-import matplotlib.pyplot as plt
+import pandas as pd
 
-def show_recommendations(recos, tags_dummies):
-    st.title("🎯 Vos recommandations personnalisées")
+# Configuration de la page
+st.set_page_config(page_title="Steam Recommender", layout="wide")
+
+st.title("🎮 Steam AI Recommender")
+st.markdown("---")
+
+# --- SIDEBAR : Profil Nouvel Utilisateur ---
+st.sidebar.header("👤 Profil utilisateur")
+selected_games = st.sidebar.multiselect(
+    "Quels jeux avez-vous aimés ?", 
+    options=matrix.columns.tolist(),
+    default=["Portal 2", "Half-Life 2"]
+)
+
+# --- LOGIQUE DE RECOMMANDATION ADAPTÉE ---
+def get_recommendations_for_new_user(liked_games, matrix, preds_df, tags_dummies, success_ratios):
+    # Création d'un profil fictif (moyenne des jeux aimés)
+    user_profile_vec = matrix[liked_games].mean(axis=1)
     
-    # Vérification si des recommandations existent
-    if recos.empty:
-        st.warning("Aucune recommandation trouvée pour cet utilisateur.")
-        return
+    # ... (le reste de ta logique de calcul hybride) ...
+    # Ici, tu appelles get_hybrid_recommendations en adaptant l'ID
+    return recos
 
-    for game in recos.index:
-        # Nettoyage : on s'assure que le titre est bien une chaîne
-        game_name = str(game)
-        
-        with st.container():
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.image("https://via.placeholder.com/150", caption=game_name)
-            with col2:
-                st.subheader(game_name)
-                
-                # Gestion du score (normalisation visuelle)
-                score = recos[game]
-                st.metric("Score de pertinence", f"{score:.2f}")
-                
-                # Gestion sécurisée des tags
-                if game_name in tags_dummies.index:
-                    game_tags = tags_dummies.loc[game_name]
-                    active_tags = game_tags[game_tags > 0].index.tolist()
-                    st.write(f"Tags : {', '.join(active_tags[:5])}")
-                else:
-                    st.write("Tags : Non disponibles")
-            st.divider() # Ajoute une ligne de séparation pour plus de lisibilité
+# --- INTERFACE PRINCIPALE ---
+if st.sidebar.button("Générer mes recommandations"):
+    # Calcul des recommandations (remplace par ton appel)
+    recos = get_hybrid_recommendations(..., matrix, preds, tags, success_ratios)
+    
+    st.subheader(f"✨ Suggestions basées sur : {', '.join(selected_games)}")
+    
+    # Affichage en grille (3 colonnes)
+    cols = st.columns(3)
+    for i, (game, score) in enumerate(recos.head(6).items()):
+        with cols[i % 3]:
+            # Utilisation de st.metric pour un rendu moderne
+            st.metric(label=game, value=f"{score*100:.0f}%")
             
-# Exemple d'appel :
-show_recommendations(recos, tags)
+            # Affichage stylisé des tags
+            game_tags = tags.loc[game]
+            active_tags = game_tags[game_tags > 0].index.tolist()
+            st.caption(f"Tags: {', '.join(active_tags[:3])}")
+            
+            if st.button(f"Voir détails {game}", key=i):
+                st.info(f"Pourquoi ce choix ? Basé sur votre intérêt pour les jeux {active_tags[0]}")
+else:
+    st.info("👈 Ajoutez des jeux dans la barre latérale pour obtenir vos recommandations.")
